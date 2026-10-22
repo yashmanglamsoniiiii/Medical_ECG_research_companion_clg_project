@@ -1,144 +1,317 @@
-PulseAI — ECG Heart-Rhythm Anomaly Detection Using Machine Learning
+# PulseAI
 
-Project Title: PulseAI — ECG Heart-Rhythm Anomaly Detection Using Machine Learning
+## ECG Heart-Rhythm Anomaly Detection Using Machine Learning
 
-Problem Statement: ECG signals contain important information about heart activity, but manually examining large amounts of ECG data can be time-consuming and requires specialized expertise. Abnormal heartbeat patterns may be difficult to identify consistently, especially when analysing long recordings.
+PulseAI is a college-level research prototype for exploring ECG signal processing, heartbeat classification, and transparent machine-learning evaluation. The platform combines a React dashboard, an Express API, a FastAPI inference service, and a TensorFlow/Keras training pipeline based on the [MIT-BIH Arrhythmia Database](https://physionet.org/content/mitdb/1.0.0/).
 
-Proposed Solution: PulseAI is a web-based machine-learning research platform that analyses uploaded ECG signals using a trained 1D Convolutional Neural Network (CNN). It visualizes ECG waveforms, classifies heartbeat patterns into learned categories, highlights potentially abnormal patterns for further review, and displays model performance metrics through an interactive dashboard.
+> [!WARNING]
+> **Research and education only.** PulseAI is not a medical device, has not been clinically validated, and must not be used to diagnose conditions or make treatment decisions. Uploaded data, model outputs, and generated reports require qualified human review.
 
-Technology Stack: Python, TensorFlow/Keras, MIT-BIH Arrhythmia Database, React, Node.js, Express, FastAPI, and SQLite.
+## Contents
 
-Expected Outcome: An integrated website that demonstrates ECG signal processing, automated heartbeat classification, and transparent model evaluation for educational and research purposes.
+- [Project goals](#project-goals)
+- [Features](#features)
+- [Architecture](#architecture)
+- [Technology stack](#technology-stack)
+- [Prerequisites](#prerequisites)
+- [Run locally](#run-locally)
+- [Train the CNN](#train-the-cnn)
+- [Supported uploads and reports](#supported-uploads-and-reports)
+- [API reference](#api-reference)
+- [Evaluation and limitations](#evaluation-and-limitations)
+- [Project structure](#project-structure)
+- [Future work](#future-work)
 
-Disclaimer: PulseAI is a college-level research prototype, not a clinically validated diagnostic system.
+## Project goals
 
-Government-inspired research dashboard | College-level ML project
+Manually reviewing long ECG recordings is time-consuming and requires specialized expertise. PulseAI demonstrates how a small, record-separated machine-learning experiment can support:
 
-PulseAI is an educational ECG signal-analysis prototype. It includes:
+1. Interactive ECG waveform exploration.
+2. Beat-window preprocessing and classification with a 1D CNN.
+3. Review flags for non-normal predicted segments.
+4. Reproducible evaluation using held-out records.
+5. Clear separation between measured results, illustrative UI data, and unavailable model artifacts.
 
-React + Vite frontend with a formal navy/white/teal public-sector dashboard style
+## Features
 
-Node.js + Express API for upload validation and analysis history
+- Government-inspired navy, white, and teal research dashboard.
+- Animated ECG pulse visualization on the main dashboard.
+- CSV upload for numeric ECG signal inference.
+- PDF, PNG, JPG/JPEG, and WEBP uploads as research attachments.
+- Patient name or study ID field for report generation.
+- Direct PDF report download with timestamp, file details, safety notice, and embedded image previews.
+- SQLite-backed analysis history.
+- SQLite-backed registry for the configured 18-record MIT-BIH split.
+- Model evaluation view for accuracy, macro precision, macro recall, macro F1, and model status.
+- Explicit “model not trained” and “service unavailable” states instead of fabricated predictions.
 
-Python FastAPI inference service with a real model-loading interface
+## Architecture
 
-Python training pipeline for the MIT-BIH Arrhythmia Database using WFDB + TensorFlow/Keras
-
-Metrics/history UI with clear demo-data labeling
-
-Medical safety: This is a student research prototype, not a medical device and not for diagnosis or treatment. Demo metrics and sample signals are explicitly labeled as illustrative. Do not use the system to make clinical decisions.
-
-Architecture
-
+```text
 PulseAI/
-├── frontend/        React UI
-├── backend/         Express API + SQLite history
-├── ml-service/      FastAPI inference API + preprocessing
-├── training/        MIT-BIH dataset preparation and CNN training
-└── docs/            project notes
+├── frontend/       React + Vite dashboard
+├── backend/        Express API, upload handling, and SQLite history
+├── ml-service/     FastAPI inference API and preprocessing
+├── training/       MIT-BIH preparation and TensorFlow/Keras training
+└── docs/           Project documentation and report outline
+```
 
+### Request flow
 
-Requirements
+```text
+Browser
+  │
+  ├── React dashboard ───────────────┐
+  │                                  │
+  └── CSV/PDF/image upload           ▼
+                              Express backend
+                               │         │
+                               │         └── SQLite history and training registry
+                               ▼
+                         FastAPI ML service
+                               │
+                               └── TensorFlow/Keras model
+```
 
-Node.js 20+
+## Technology stack
 
-Python 3.10–3.11 recommended
+| Layer | Technologies |
+| --- | --- |
+| Frontend | React 18, Vite, Recharts, Lucide React, jsPDF |
+| Backend | Node.js, Express, Multer, better-sqlite3 |
+| ML service | Python, FastAPI, NumPy, SciPy |
+| Training | TensorFlow/Keras, WFDB, scikit-learn, Matplotlib |
+| Dataset | MIT-BIH Arrhythmia Database via PhysioNet |
 
-For training: Google Colab GPU recommended
+## Prerequisites
 
-Dataset: MIT-BIH Arrhythmia Database: https://physionet.org/content/mitdb/1.0.0/
+- Node.js 20 or newer.
+- Python 3.10 or 3.11 for training and inference dependencies.
+- Google Colab GPU recommended for the training experiment.
+- Internet access when downloading MIT-BIH records through WFDB.
 
-Run locally
+> **Python note:** TensorFlow dependencies are not guaranteed to support every newer Python release. Use Python 3.10/3.11 or Google Colab for the documented training workflow.
 
-1. Start the ML service
+## Run locally
 
+PulseAI uses three local services. Open three terminal windows from the project root.
+
+### 1. Start the ML service
+
+```powershell
 cd ml-service
 python -m venv .venv
-# Windows:
 .venv\Scripts\activate
-# macOS/Linux:
-source .venv/bin/activate
 pip install -r requirements.txt
 uvicorn app:app --reload --port 8001
+```
 
+For macOS/Linux:
 
-Without a trained model, /health reports model_loaded: false; inference returns a clear error rather than fabricating predictions.
+```bash
+source .venv/bin/activate
+```
 
-2. Start the Express backend
+Without a trained model, `GET /health` reports `model_loaded: false`. CSV inference remains disabled and returns an explicit error.
 
-Open a second terminal:
+### 2. Start the backend
 
+```powershell
 cd backend
 npm install
 npm run dev
+```
 
+The API runs at <http://localhost:8000>.
 
-Backend runs at http://localhost:8000.
+### 3. Start the frontend
 
-3. Start the frontend
-
-Open a third terminal:
-
+```powershell
 cd frontend
 npm install
 npm run dev
+```
 
+Open the Vite URL shown in the terminal, normally <http://localhost:5173>.
 
-Open the Vite URL shown in the terminal, usually http://localhost:5173.
+## Train the CNN
 
-Train a real model (Google Colab recommended)
+The repository intentionally does not include trained model weights. Train the educational baseline in Google Colab or a compatible Python 3.10/3.11 environment.
 
-Open training/train_mitbih_cnn.py in Colab or run it from a Python 3.10–3.11 environment.
+### Install training dependencies
 
-Install dependencies:
+```bash
+cd training
+pip install -r requirements.txt
+```
 
-!pip install wfdb tensorflow scikit-learn scipy pandas matplotlib
+### Run the default experiment
 
+The default configuration uses 18 records:
 
-Run the training script. By default it downloads and uses an 18-record subset (12 train records and 6 held-out test records), rather than the full database:
+- 12 training records
+- 6 held-out test records
+- Record-level separation to reduce leakage
+- Fixed random seed for reproducibility
 
+```bash
 python train_mitbih_cnn.py
+```
 
+### Customize the record split
 
-You can choose another small record split, but keep it between 15 and 20 total records:
+Keep the total number of records between 15 and 20 for this college-level experiment. Never overlap training and test records.
 
-python train_mitbih_cnn.py --train-records 100 101 103 105 106 108 109 111 112 --test-records 102 104 107 117 118 119
+```bash
+python train_mitbih_cnn.py `
+  --train-records 100 101 103 105 106 108 109 111 112 `
+  --test-records 102 104 107 117 118 119
+```
 
+The script downloads the selected records from PhysioNet and creates:
 
-The script saves ecg_cnn.keras, label_map.json, metrics.json, and a confusion-matrix image under training/artifacts/.
+```text
+training/artifacts/
+├── best_model.keras
+├── ecg_cnn.keras
+├── label_map.json
+├── metrics.json
+├── classification_report.txt
+├── confusion_matrix.png
+└── training_history.png
+```
 
-Copy ecg_cnn.keras, label_map.json, and (optionally) metrics.json into ml-service/models/. The backend also reads training/artifacts/metrics.json, so the evaluation screen can display results without duplicating the metrics file.
+Copy the runtime artifacts to `ml-service/models/`:
 
-Restart the ML service.
+```text
+ecg_cnn.keras
+label_map.json
+metrics.json
+```
 
-The training script uses record-level splits to reduce leakage between train and test sets. Its small default record list is intended for a college demonstration; report the exact record IDs and limitations in your presentation. Actual training has not been performed just by downloading this starter project; run the command above to create the model artifacts.
+Then restart the ML service. The dashboard will read measured metrics when the artifacts are available. The backend also reads `training/artifacts/metrics.json` for evaluation display.
 
-Supported input
+## Supported uploads and reports
 
-Uploads: CSV files can be analysed when they contain one numeric ECG channel, one sample per row; PDF, PNG, JPG/JPEG, and WEBP files are accepted as research attachments but are not classified because the current model requires numeric ECG samples.
+### CSV signal analysis
 
-Reports: after an upload, enter a patient name or study ID and choose Generate report. The browser creates a timestamped research report with the attachment details and, for image uploads, embeds the image. Use the report's Print / Save as PDF button to export it. Image/PDF reports explicitly state that the current CNN did not analyse the document.
+CSV files must contain a single numeric ECG channel with at least 100 samples. A header row is allowed if non-numeric values are skipped. The current inference service normalizes fixed-size windows before passing them to the CNN.
 
-Inference expects a sufficiently long 1-D ECG signal. The model segments around detected peaks into  heartbeat windows.
+CSV classification requires a trained model artifact.
 
-API endpoints
+### PDF and image attachments
 
-GET /api/health — backend + ML service status
+The following formats are accepted:
 
-GET /api/history — recent analysis history
+- PDF
+- PNG
+- JPG/JPEG
+- WEBP
 
-POST /api/analyze — multipart CSV upload, forwards signal to ML service
+These files are stored as research attachments in the local analysis history. They are **not** classified by the current CNN because the model expects numeric ECG samples. The application does not invent predictions from images or documents.
 
-GET /api/metrics — model metrics when available
+### PDF reports
 
-GET /api/training-data — configured MIT-BIH train/test records and artifact status
+After an upload:
 
-ML service: GET /health, POST /predict
+1. Enter a patient name or study ID.
+2. Choose **Generate report** for the browser report view, or **Download PDF report** for a direct PDF file.
+3. Review the timestamp, source file, analysis status, safety notice, and any embedded image preview.
 
-College-project extensions
+Reports are research documents, not clinical reports. Do not include identifiable patient data unless you have appropriate authorization and secure handling procedures.
 
-Add WFDB record uploads and annotation-based evaluation.
+## API reference
 
-PDF report export is available from the upload result. It includes the patient name, local generation time, file details, safety notice, and embedded image when the upload is an image.
+### Express backend — `http://localhost:8000`
 
-Add a model comparison experiment (CNN vs CNN-LSTM) after the baseline works.
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| `GET` | `/api/health` | Backend and ML-service status |
+| `GET` | `/api/history` | Recent saved uploads and analyses |
+| `GET` | `/api/metrics` | Evaluation metrics when an artifact is available |
+| `GET` | `/api/training-data` | Configured MIT-BIH records and artifact status |
+| `POST` | `/api/analyze` | Multipart upload using the `ecg` field |
+
+### FastAPI ML service — `http://localhost:8001`
+
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| `GET` | `/health` | Service availability and model-load state |
+| `POST` | `/predict` | Segment and classify a numeric ECG signal |
+
+Example prediction request:
+
+```json
+{
+  "signal": [0.12, 0.14, 0.11, 0.09]
+}
+```
+
+The real request must contain at least 100 samples.
+
+## Evaluation and limitations
+
+The training pipeline reports:
+
+- Accuracy
+- Macro precision
+- Macro recall
+- Macro F1-score
+- Classification report
+- Confusion matrix
+
+Important limitations:
+
+- The default experiment uses only 18 records.
+- MIT-BIH class frequencies are imbalanced.
+- The simplified label mapping is an educational baseline, not a complete clinical standard.
+- The current web segmenter uses fixed windows rather than a validated clinical R-peak detector.
+- Image and PDF uploads are not converted into ECG waveforms.
+- The model has no clinical validation and must not be used for patient care.
+
+## Project structure
+
+```text
+backend/
+├── package.json
+└── server.js
+
+frontend/
+├── package.json
+├── vite.config.js
+└── src/
+    ├── App.jsx
+    ├── main.jsx
+    └── styles.css
+
+ml-service/
+├── app.py
+├── requirements.txt
+└── models/
+
+training/
+├── train_mitbih_cnn.py
+├── requirements.txt
+└── PulseAI_Training_Colab_Starter.ipynb
+```
+
+## Future work
+
+- Add WFDB record upload and annotation-aware evaluation.
+- Add authenticated, encrypted report storage for approved research use.
+- Add multi-lead ECG support and sampling-rate metadata.
+- Compare the baseline CNN with CNN-LSTM and other architectures.
+- Add batch report generation and richer per-class visualizations.
+- Add automated tests for upload validation, report generation, and model responses.
+
+## Dataset and references
+
+- [MIT-BIH Arrhythmia Database — PhysioNet](https://physionet.org/content/mitdb/1.0.0/)
+- [PhysioNet](https://physionet.org/)
+- [WFDB Python package](https://wfdb.readthedocs.io/)
+
+Review the dataset’s access, citation, and usage terms before using it in a report or presentation.
+
+## License
+
+This repository is a college-level research project. Add the project’s chosen license and a `LICENSE` file before distributing it publicly.
