@@ -1,0 +1,8 @@
+{
+  "name": "pulseai-backend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {"dev": "node --watch server.js", "start": "node server.js"},
+  "dependencies": {"better-sqlite3": "^11.7.0", "cors": "^2.8.5", "express": "^4.21.2", "multer": "^1.4.5-lts.1"}
+}

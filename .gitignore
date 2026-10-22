@@ -1,0 +1,13 @@
+node_modules/
+.venv/
+__pycache__/
+*.pyc
+dist/
+*.db-shm
+*.db-wal
+backend/data/*.db
+training/data/
+training/artifacts/
+ml-service/models/*.keras
+ml-service/models/metrics.json
+ml-service/models/label_map.json
